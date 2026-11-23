@@ -7,6 +7,7 @@ import { auditEvent, lifecycleStages, transitionLifecycle, type LifecycleStage }
 import { matchLenders } from './serverModules'
 import { complianceGate, generateOfferPacket, lenderBinder } from './release2'
 import { normalizeBid, auditTitleCommitment, auditSettlement, createClosingChecklist } from './release3'
+import { verifyRehabDraw, calculateScheduleENoi, triageMaintenance, createPostCloseChecklist } from './release4'
 
 const app = express()
 app.use(cors())
@@ -166,6 +167,81 @@ app.post('/api/v1/closing/checklist',(req,res)=>{
   const parsed=z.object({dealId:z.string().uuid()}).safeParse(req.body)
   if(!parsed.success)return res.status(400).json({error:'Invalid closing checklist request'})
   res.status(201).json({data:createClosingChecklist(parsed.data.dealId)})
+})
+
+app.post('/api/v1/release4/rehab-draw/verify', (req, res) => {
+  const schema = z.object({
+    dealId: z.string().uuid(),
+    drawAmount: z.number().positive(),
+    drawDescription: z.string().optional(),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid rehab draw data', details: parsed.error.flatten() })
+  res.json({ data: verifyRehabDraw(parsed.data) })
+})
+
+app.post('/api/v1/release4/schedule-e/calculate', (req, res) => {
+  const schema = z.object({
+    dealId: z.string().uuid(),
+    noi: z.number().optional(),
+    expenses: z.object({
+      propertyManagement: z.number().nonnegative().optional(),
+      repairs: z.number().nonnegative().optional(),
+      utilities: z.number().nonnegative().optional(),
+      other: z.number().nonnegative().optional(),
+    }).optional(),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid Schedule E data', details: parsed.error.flatten() })
+  res.json({ data: calculateScheduleENoi(parsed.data) })
+})
+
+app.post('/api/v1/release4/maintenance/triage', (req, res) => {
+  const schema = z.object({
+    dealId: z.string().uuid(),
+    issueDescription: z.string().min(5),
+    urgencyLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid maintenance request', details: parsed.error.flatten() })
+  res.json({ data: triageMaintenance(parsed.data) })
+})
+
+app.post('/api/v1/release4/post-close/checklist', (req, res) => {
+  const schema = z.object({
+    dealId: z.string().uuid(),
+    itemsReviewed: z.array(z.string()).min(1),
+    followUpNeeded: z.boolean().optional(),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid post-close checklist data', details: parsed.error.flatten() })
+  res.json({ data: createPostCloseChecklist(parsed.data) })
+})
+
+app.post('/api/v1/post-close/draw', (req,res)=>{
+  const schema=z.object({name:z.string(),drawAmount:z.number().positive(),verificationPhotoUrls:z.array(z.string().url()).min(0),humanApproved:z.boolean()})
+  const parsed=schema.safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid draw request',details:parsed.error.flatten()})
+  res.json({data:verifyRehabDraw(parsed.data,parsed.data.humanApproved)})
+})
+
+app.post('/api/v1/post-close/schedule-e',(req,res)=>{
+  const schema=z.object({entries:z.array(z.object({entryType:z.enum(['INCOME','EXPENSE']),amount:z.number().nonnegative()}))})
+  const parsed=schema.safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid ledger entries'})
+  res.json({data:calculateScheduleENoi(parsed.data.entries)})
+})
+
+app.post('/api/v1/post-close/maintenance',(req,res)=>{
+  const parsed=z.object({description:z.string().min(3),approvedSpendCap:z.number().nonnegative()}).safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid maintenance ticket'})
+  res.json({data:triageMaintenance(parsed.data.description,parsed.data.approvedSpendCap)})
+})
+
+app.post('/api/v1/post-close/checklist',(req,res)=>{
+  const parsed=z.object({propertyId:z.string().uuid()}).safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid property ID'})
+  res.status(201).json({data:createPostCloseChecklist(parsed.data.propertyId)})
 })
 
 const port = Number(process.env.PORT || 4100)
