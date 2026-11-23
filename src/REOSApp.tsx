@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, BarChart3, Bell, Bot, Building2, ChevronDown, CircleHelp, CirclePlus, Clock3, Command, FileCheck2, Filter, Heart, Landmark, LayoutGrid, Menu, MoreHorizontal, Network, Search, Settings, ShieldCheck, Sparkles, TrendingUp, Upload, Users, Wrench, X } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, BarChart3, Bell, Bot, Building2, ChevronDown, CircleHelp, CirclePlus, Clock3, Command, CreditCard, FileCheck2, Filter, Heart, KeyRound, Landmark, LayoutGrid, Menu, MoreHorizontal, Network, Search, Settings, ShieldCheck, Sparkles, TrendingUp, Upload, Users, Wrench, X } from 'lucide-react'
 import './REOSApp.css'
 
 const properties = [
@@ -28,6 +28,8 @@ const platformNav = [
   {label:'AI agents',icon:Bot},
   {label:'Integrations',icon:Network},
   {label:'Documents',icon:Upload},
+  {label:'Billing',icon:CreditCard},
+  {label:'API / MCP',icon:KeyRound},
 ]
 
 export default function REOSApp(){
@@ -142,6 +144,8 @@ function WorkspaceView({active,search,setSearch}:{active:string;search:string;se
     'AI agents':'Configure autonomous agents, provider models, approval boundaries, and execution policies.',
     'Integrations':'Connect MLS, parcel, voice, messaging, e-sign, banking, screening, storage, and automation vendors.',
     'Documents':'Review OCR, title, leases, T12s, contracts, settlement statements, and source citations.',
+    'Billing':'Manage subscriptions, usage credits, overages, invoices, lender referral revenue, and vendor fees.',
+    'API / MCP':'Configure API keys, tenant scopes, MCP tools, webhooks, rate limits, audit logs, and partner access.',
   }
   const stageCards:Record<string,string[]>={
     'Deal explorer':['New opportunities','Saved searches','Auction watch','Skip-traced owners'],
@@ -159,6 +163,8 @@ function WorkspaceView({active,search,setSearch}:{active:string;search:string;se
     'AI agents':['Sourcing agent','Underwriting agent','Outreach agent','Closing agent'],
     'Integrations':['Data providers','Communications','Financial','Document & e-sign'],
     'Documents':['Title commitments','T12 & rent rolls','Contracts','Settlement statements'],
+    'Billing':['Starter plan','Usage credits','Overage ledger','Invoice history'],
+    'API / MCP':['API keys','MCP tools','Webhook events','Tenant scopes'],
   }
   const cards=stageCards[active]||['Sourcing','Underwriting','Outreach','Diligence','Closing','Operations']
 
@@ -176,6 +182,8 @@ function WorkspaceView({active,search,setSearch}:{active:string;search:string;se
     {active==='Closing'&&<div className="workflow-panel"><div className="workflow-head"><div><p>DIGITAL CLOSING WAR ROOM</p><h3>Closing readiness</h3></div><button className="primary-action"><FileCheck2 size={15}/> Review closing</button></div><div className="closing-check-grid">{[['Title commitment','Reviewed','clear'],['ALTA / HUD-1','1 variance','$1,500'],['Hazard insurance','Bound','active'],['RON notary','Scheduled','Dec 15'],['Wire verification','Required','pending']].map(row=><article key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><b>{row[2]}</b></article>)}</div></div>}
     {active==='Construction'&&<div className="workflow-panel"><div className="workflow-head"><div><p>VISION-VERIFIED DRAW CONTROL</p><h3>Rehabilitation milestones</h3></div><button className="primary-action"><CirclePlus size={15}/> Request draw</button></div><div className="workflow-table"><div className="workflow-row header"><span>Milestone</span><span>Contractor</span><span>Draw</span><span>Photo review</span><span>Status</span></div>{[['Roof dry-in','Northline Construction','$18,000','2 of 2','Approved'],['Rough plumbing','Metro Mechanical','$24,500','Reviewing','Pending'],['Kitchen cabinets','Summit Millwork','$31,000','Not uploaded','Blocked']].map(row=><div className="workflow-row" key={row[0]}>{row.map((cell,i)=><span key={cell} className={i===4?'workflow-status':''}>{cell}</span>)}</div>)}</div></div>}
     {active==='Property management'&&<div className="workflow-panel"><div className="workflow-head"><div><p>PORTFOLIO OPERATIONS</p><h3>Leasing, maintenance & accounting</h3></div><button className="primary-action"><Building2 size={15}/> Add unit</button></div><div className="closing-check-grid">{[['Active leases','18','100% occupied'],['Rent collected','$42,800','November'],['Open maintenance','5','2 emergency'],['Schedule E NOI','$318.4K','YTD'],['Delinquencies','2','$3,600']].map(row=><article key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><b>{row[2]}</b></article>)}</div></div>}
+    {active==='Billing'&&<div className="workflow-panel"><div className="workflow-head"><div><p>SUBSCRIPTION & METERED USAGE</p><h3>Current plan: Scale</h3></div><button className="primary-action"><CreditCard size={15}/> Manage billing</button></div><div className="closing-check-grid">{[['Underwriting','724 / 1,000','Balance 276'],['Skip traces','1,102 / 1,500','Balance 398'],['Vision grades','186 / 250','Balance 64'],['RFQ broadcasts','28 / 35','Balance 7'],['Credit balance','$184.30','Available']].map(row=><article key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><b>{row[2]}</b></article>)}</div></div>}
+    {active==='API / MCP'&&<div className="workflow-panel"><div className="workflow-head"><div><p>EXTERNAL AI & ENTERPRISE API</p><h3>Developer access</h3></div><button className="primary-action"><KeyRound size={15}/> Create API key</button></div><div className="workflow-table"><div className="workflow-row header"><span>Tool / endpoint</span><span>Scope</span><span>Transport</span><span>Quota</span><span>Status</span></div>{[['underwrite_property_all_strategies','Tenant write','REST / MCP','1,000 mo','Active'],['search_real_estate_deals','Tenant read','REST / MCP','4,000 mo','Active'],['broadcast_vendor_rfq','Tenant write','REST / MCP','35 mo','Active'],['get_portfolio_schedule_e_summary','Tenant read','MCP','Unlimited','Active']].map(row=><div className="workflow-row" key={row[0]}>{row.map((cell,i)=><span key={cell} className={i===4?'workflow-status':''}>{cell}</span>)}</div>)}</div></div>}
   </section>
 }
 
