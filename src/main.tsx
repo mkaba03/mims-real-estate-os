@@ -3,10 +3,10 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './roadmap.css'
 import './REOSComplete.css'
-import REOSComplete from './REOSComplete.tsx'
+import REOSModularApp from './REOSModularApp.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <REOSComplete />
+    <REOSModularApp />
   </StrictMode>,
 )

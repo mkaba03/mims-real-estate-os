@@ -22,5 +22,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/REOSComplete.tsx","src/REOSApp.tsx","src/App.tsx","src/App.css"]
 }
