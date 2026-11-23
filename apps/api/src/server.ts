@@ -8,6 +8,9 @@ import { matchLenders } from './serverModules'
 import { complianceGate, generateOfferPacket, lenderBinder } from './release2'
 import { normalizeBid, auditTitleCommitment, auditSettlement, createClosingChecklist } from './release3'
 import { verifyRehabDraw, calculateScheduleENoi, triageMaintenance, createPostCloseChecklist } from './release4'
+import { MockListingProvider, deduplicateListings } from './providerAdapters'
+import { mountMcpServer } from './mcp'
+import { pricingTiers, consumeCredit, meterOverage } from './subscriptions'
 
 const app = express()
 app.use(cors())
@@ -244,5 +247,27 @@ app.post('/api/v1/post-close/checklist',(req,res)=>{
   res.status(201).json({data:createPostCloseChecklist(parsed.data.propertyId)})
 })
 
+app.post('/api/v1/sourcing/search',(req,res)=>{
+  const parsed=z.object({state:z.string().length(2),city:z.string().optional(),source:z.enum(['MLS','OFF_MARKET','TAX_DEED','PROBATE','HUD','AUCTION_COM','LAND_BANK']).optional()}).safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid sourcing query'})
+  const provider=new MockListingProvider(parsed.data.source||'MLS')
+  provider.search(parsed.data.state,parsed.data.city).then(listings=>res.json({data:deduplicateListings(listings)}))
+})
+
+app.get('/api/v1/subscriptions/pricing',(_req,res)=>res.json({data:pricingTiers}))
+app.post('/api/v1/subscriptions/credits/consume',(req,res)=>{
+  const parsed=z.object({balance:z.number().nonnegative(),cost:z.number().nonnegative()}).safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid credit request'})
+  const result=consumeCredit(parsed.data.balance,parsed.data.cost)
+  return result.ok?res.json({data:result}):res.status(402).json({error:result.error,data:result})
+})
+app.get('/api/v1/subscriptions/overages/:action',(req,res)=>{
+  const action=req.params.action as 'SKIP_TRACE'|'VOICE_MINUTE'|'ESIGN'|'VISION'|'RFQ'
+  if(!['SKIP_TRACE','VOICE_MINUTE','ESIGN','VISION','RFQ'].includes(action))return res.status(400).json({error:'Unknown metered action'})
+  res.json({data:meterOverage(action)})
+})
+
 const port = Number(process.env.PORT || 4100)
 app.listen(port, () => console.log(`RE-OS API listening on port ${port}`))
+
+mountMcpServer(app,(input)=>underwrite({purchasePrice:input.purchasePrice||0,arv:input.arv||0,rehabCost:input.rehabCost||0,monthlyRent:input.monthlyRent||0}))

@@ -13,6 +13,7 @@
     "temporal:worker": "tsx services/workflows-ts/src/worker.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@temporalio/activity": "^1.26.0",
     "@temporalio/client": "^1.26.0",
     "@temporalio/worker": "^1.26.0",
