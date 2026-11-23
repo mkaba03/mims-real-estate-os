@@ -6,6 +6,7 @@ import { underwrite, creativeStructures } from './underwriting'
 import { auditEvent, lifecycleStages, transitionLifecycle, type LifecycleStage } from './dealLifecycle'
 import { matchLenders } from './serverModules'
 import { complianceGate, generateOfferPacket, lenderBinder } from './release2'
+import { normalizeBid, auditTitleCommitment, auditSettlement, createClosingChecklist } from './release3'
 
 const app = express()
 app.use(cors())
@@ -138,6 +139,33 @@ app.post('/api/v1/lenders/binder', (req, res) => {
   const deal = deals.find(item => item.id === parsed.data.dealId)
   if (!deal) return res.status(404).json({ error:'Deal not found' })
   res.json({ data:lenderBinder(deal) })
+})
+
+app.post('/api/v1/bids/normalize', (req, res) => {
+  const schema=z.object({lines:z.array(z.object({item:z.string(),quantity:z.number().positive(),unitCost:z.number().nonnegative()})).min(1),baseline:z.array(z.object({item:z.string(),quantity:z.number().positive(),unitCost:z.number().nonnegative()})).min(1)})
+  const parsed=schema.safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid bid normalization input',details:parsed.error.flatten()})
+  res.json({data:normalizeBid(parsed.data.lines,parsed.data.baseline)})
+})
+
+app.post('/api/v1/closing/title-audit',(req,res)=>{
+  const schema=z.object({mortgages:z.number().int().nonnegative(),municipalLiens:z.number().int().nonnegative(),easements:z.number().int().nonnegative(),taxCertificates:z.number().int().nonnegative()})
+  const parsed=schema.safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid title audit'})
+  res.json({data:auditTitleCommitment(parsed.data)})
+})
+
+app.post('/api/v1/closing/settlement-audit',(req,res)=>{
+  const line=z.object({description:z.string(),amount:z.number()})
+  const parsed=z.object({proposed:z.array(line),underwriting:z.array(line)}).safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid settlement audit'})
+  res.json({data:auditSettlement(parsed.data.proposed,parsed.data.underwriting)})
+})
+
+app.post('/api/v1/closing/checklist',(req,res)=>{
+  const parsed=z.object({dealId:z.string().uuid()}).safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid closing checklist request'})
+  res.status(201).json({data:createClosingChecklist(parsed.data.dealId)})
 })
 
 const port = Number(process.env.PORT || 4100)
