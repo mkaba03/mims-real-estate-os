@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Search, Building2, BarChart3, BriefcaseBusiness,
   Landmark, ClipboardCheck, Hammer, Settings, Bell, HelpCircle,
@@ -34,6 +34,25 @@ function App() {
   const [propertyType, setPropertyType] = useState('All types')
   const [search, setSearch] = useState('')
 
+  useEffect(() => {
+    fetch('/api/v1/deals').then(response => response.ok ? response.json() : {data:[]}).then(result => {
+      if (result.data?.length) {
+        setProperties(current => [...result.data.map((deal:any) => ({
+          id: deal.id,
+          address: deal.address,
+          city: deal.city,
+          type: deal.propertyType,
+          units: '1 unit',
+          price: `$${deal.purchasePrice.toLocaleString()}`,
+          arv: `$${deal.arv.toLocaleString()}`,
+          roi: deal.underwriting?.rental?.capRate ? `${(deal.underwriting.rental.cashOnCash*100).toFixed(1)}%` : 'Pending',
+          status: 'API deal',
+          image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=80',
+        })), ...current.filter(property => typeof property.id === 'number')])
+      }
+    }).catch(() => undefined)
+  }, [])
+
   const visibleProperties = properties.filter(property => {
     const matchesType = propertyType === 'All types' || property.type === propertyType
     const matchesSearch = !search || `${property.address} ${property.city}`.toLowerCase().includes(search.toLowerCase())
@@ -51,17 +70,34 @@ function App() {
     Construction: 'Construction management',
   }
 
-  function addProperty(event: React.FormEvent<HTMLFormElement>) {
+  async function addProperty(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const address = String(data.get('address') || 'New property')
     const city = String(data.get('city') || 'Chicago, IL')
-    const price = String(data.get('price') || '$0')
-    setProperties(current => [{
-      id: Date.now(), address, city, type: String(data.get('type') || 'Single family'),
-      units: '1 unit', price, arv: '$0', roi: 'Pending', status: 'New listing',
-      image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=80',
-    }, ...current])
+    const priceText = String(data.get('price') || '$0')
+    const purchasePrice = Number(priceText.replace(/[^0-9.]/g, ''))
+
+    try {
+      const response = await fetch('/api/v1/deals', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({address, city, propertyType:String(data.get('type') || 'Single family'), purchasePrice, arv:0, rehabCost:0, monthlyRent:0}),
+      })
+      if (!response.ok) throw new Error('Unable to create deal')
+      const result = await response.json()
+      const deal = result.data
+      setProperties(current => [{
+        id: deal.id, address:deal.address, city:deal.city, type:deal.propertyType,
+        units:'1 unit', price:`$${deal.purchasePrice.toLocaleString()}`, arv:'$0', roi:'Pending',
+        status:'API deal', image:'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=80',
+      }, ...current])
+    } catch {
+      setProperties(current => [{
+        id:Date.now(), address, city, type:String(data.get('type') || 'Single family'),
+        units:'1 unit', price:priceText, arv:'$0', roi:'Pending', status:'Unsynced draft',
+        image:'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=80',
+      }, ...current])
+    }
     setModal(null)
   }
 
