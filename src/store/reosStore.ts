@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 export type PropertyType = 'SFH'|'2-4 Unit'|'5+ Multifamily'|'Commercial'|'Industrial'|'Land'|'Land Development'
 export type LifecycleStage = 'Sourced'|'Underwritten'|'Offer Sent'|'Under Contract'|'Diligence'|'Closing'|'Rehab'|'Stabilized / Sold'
@@ -47,6 +48,7 @@ interface ReosState {
   setActiveDeal:(id:string)=>void
   addDeal:(deal:ReosDeal)=>void
   updateApproval:(id:string,status:'Approved'|'Rejected')=>void
+  resetDemoData:()=>void
   getActiveDeal:()=>ReosDeal
 }
 
@@ -65,10 +67,15 @@ export const initialApprovals:Approval[]=[
  {id:'approval-4',kind:'Closing Wire',dealId:'subject-to',title:'Closing wire verification',detail:'MFA + call-back required',amount:245000,status:'Pending'},
 ]
 
-export const useReosStore=create<ReosState>((set,get)=>({
+export const useReosStore=create<ReosState>()(persist((set,get)=>({
  activeDealId:'oakwood',deals:initialDeals,approvals:initialApprovals,
  setActiveDeal:(id)=>set({activeDealId:id}),
  addDeal:(deal)=>set(state=>({deals:[deal,...state.deals],activeDealId:deal.id})),
  updateApproval:(id,status)=>set(state=>({approvals:state.approvals.map(a=>a.id===id?{...a,status}:a)})),
+ resetDemoData:()=>set({activeDealId:'oakwood',deals:initialDeals,approvals:initialApprovals}),
  getActiveDeal:()=>get().deals.find(deal=>deal.id===get().activeDealId)||get().deals[0],
+}),{
+ name:'reos_vite_state_v1',
+ storage:createJSONStorage(()=>localStorage),
+ partialize:(state)=>({activeDealId:state.activeDealId,deals:state.deals,approvals:state.approvals}),
 }))
