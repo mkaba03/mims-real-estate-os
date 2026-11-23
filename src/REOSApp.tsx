@@ -30,6 +30,8 @@ const platformNav = [
   {label:'Documents',icon:Upload},
   {label:'Billing',icon:CreditCard},
   {label:'API / MCP',icon:KeyRound},
+  {label:'Team',icon:Users},
+  {label:'Settings',icon:Settings},
 ]
 
 export default function REOSApp(){
