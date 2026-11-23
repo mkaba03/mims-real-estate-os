@@ -5,6 +5,7 @@ import crypto from 'node:crypto'
 import { underwrite, creativeStructures } from './underwriting'
 import { auditEvent, lifecycleStages, transitionLifecycle, type LifecycleStage } from './dealLifecycle'
 import { matchLenders } from './serverModules'
+import { complianceGate, generateOfferPacket, lenderBinder } from './release2'
 
 const app = express()
 app.use(cors())
@@ -115,6 +116,29 @@ app.post('/api/v1/rfqs', (req, res) => {
 })
 
 app.get('/api/v1/rfqs', (_req, res) => res.json({ data: rfqs }))
+
+app.post('/api/v1/compliance/check', (req, res) => {
+  const schema = z.object({ state:z.string().length(2), channel:z.enum(['VOICE','SMS','EMAIL','DIRECT_MAIL']), dncScrubbed:z.boolean(), litigatorScrubbed:z.boolean(), consentVerified:z.boolean() })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error:'Invalid compliance context', details:parsed.error.flatten() })
+  res.json({ data: complianceGate(parsed.data) })
+})
+
+app.post('/api/v1/offers/generate', (req, res) => {
+  const schema = z.object({ dealId:z.string().uuid(), contractType:z.enum(['PSA','LOI','SUB_TO_ADDENDUM','NOVATION']), offerAmount:z.number().positive(), closingDate:z.string(), state:z.string().length(2) })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error:'Invalid offer packet', details:parsed.error.flatten() })
+  if (!deals.some(deal => deal.id === parsed.data.dealId)) return res.status(404).json({ error:'Deal not found' })
+  res.status(201).json({ data:generateOfferPacket(parsed.data) })
+})
+
+app.post('/api/v1/lenders/binder', (req, res) => {
+  const parsed = z.object({ dealId:z.string().uuid() }).safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error:'Invalid binder request' })
+  const deal = deals.find(item => item.id === parsed.data.dealId)
+  if (!deal) return res.status(404).json({ error:'Deal not found' })
+  res.json({ data:lenderBinder(deal) })
+})
 
 const port = Number(process.env.PORT || 4100)
 app.listen(port, () => console.log(`RE-OS API listening on port ${port}`))
