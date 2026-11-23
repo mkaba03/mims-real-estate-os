@@ -28,6 +28,15 @@ services:
   web:
     build: .
     ports: ["5173:80"]
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports: ["7233:7233"]
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: reos
+      POSTGRES_PWD: reos_dev_password
+      POSTGRES_SEEDS: postgres
 
 volumes:
   reos_pg:
