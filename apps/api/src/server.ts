@@ -11,6 +11,8 @@ import { verifyRehabDraw, calculateScheduleENoi, triageMaintenance, createPostCl
 import { MockListingProvider, deduplicateListings } from './providerAdapters'
 import { mountMcpServer } from './mcp'
 import { pricingTiers, consumeCredit, meterOverage } from './subscriptions'
+import { requireAuth, requireRoles, signSession } from './auth'
+import { setIntegrationSecret, listIntegrationSecrets, type IntegrationProvider } from './integrationVault'
 
 const app = express()
 app.use(cors())
@@ -34,9 +36,9 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'reos-api', timestamp: new Date().toISOString() })
 })
 
-app.get('/api/v1/deals', (_req, res) => res.json({ data: deals }))
+app.get('/api/v1/deals', requireAuth, (_req, res) => res.json({ data: deals }))
 
-app.post('/api/v1/deals', (req, res) => {
+app.post('/api/v1/deals', requireAuth, requireRoles('OWNER','ADMIN','ANALYST'), (req, res) => {
   const parsed = dealSchema.safeParse(req.body)
   if (!parsed.success) return res.status(400).json({ error: 'Invalid deal data', details: parsed.error.flatten() })
 
@@ -84,7 +86,7 @@ app.post('/api/v1/lenders/match', (req, res) => {
   res.json({ data: matchLenders(parsed.data.propertyType, parsed.data.ltv, parsed.data.dscr) })
 })
 
-app.post('/api/v1/deals/:dealId/transition', (req, res) => {
+app.post('/api/v1/deals/:dealId/transition', requireAuth, requireRoles('OWNER','ADMIN'), (req, res) => {
   const deal = deals.find((item) => item.id === req.params.dealId)
   if (!deal) return res.status(404).json({ error: 'Deal not found' })
 
@@ -271,3 +273,26 @@ const port = Number(process.env.PORT || 4100)
 app.listen(port, () => console.log(`RE-OS API listening on port ${port}`))
 
 mountMcpServer(app,(input)=>underwrite({purchasePrice:input.purchasePrice||0,arv:input.arv||0,rehabCost:input.rehabCost||0,monthlyRent:input.monthlyRent||0}))
+
+app.post('/api/v1/auth/login',(req,res)=>{
+  const parsed=z.object({email:z.string().email(),tenantId:z.string().min(2),role:z.enum(['OWNER','ADMIN','ANALYST','FIELD','CONTRACTOR','TENANT','VIEWER']).optional().default('OWNER')}).safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid login request',details:parsed.error.flatten()})
+  const principal={tenantId:parsed.data.tenantId,userId:crypto.randomUUID(),role:parsed.data.role,email:parsed.data.email}
+  res.json({data:{accessToken:signSession(principal),principal,expiresIn:'8h'}})
+})
+
+app.get('/api/v1/session',requireAuth,(req,res)=>res.json({data:(req as any).principal}))
+
+app.post('/api/v1/integrations/configure',requireAuth,requireRoles('OWNER','ADMIN'),(req,res)=>{
+  const providers=['REAL_ESTATE_API','BRIDGE_RESO','TWILIO','VAPI','DROPBOX_SIGN','PLAID','STRIPE','ANTHROPIC'] as const
+  const parsed=z.object({provider:z.enum(providers),secret:z.string().min(8),status:z.enum(['SANDBOX','CONNECTED','DISABLED']).optional()}).safeParse(req.body)
+  if(!parsed.success)return res.status(400).json({error:'Invalid integration configuration'})
+  const principal=(req as any).principal
+  const result=setIntegrationSecret(principal.tenantId,parsed.data.provider as IntegrationProvider,parsed.data.secret,parsed.data.status)
+  res.status(201).json({data:result})
+})
+
+app.get('/api/v1/integrations',requireAuth,(req,res)=>{
+  const principal=(req as any).principal
+  res.json({data:listIntegrationSecrets(principal.tenantId)})
+})
