@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, BarChart3, Bell, Building2, ChevronDown, CircleHelp, CirclePlus, Clock3, Command, Filter, Heart, Landmark, LayoutGrid, Menu, MoreHorizontal, Search, Settings, Sparkles, TrendingUp, Users, X } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, BarChart3, Bell, Bot, Building2, ChevronDown, CircleHelp, CirclePlus, Clock3, Command, FileCheck2, Filter, Heart, Landmark, LayoutGrid, Menu, MoreHorizontal, Network, Search, Settings, ShieldCheck, Sparkles, TrendingUp, Upload, Users, Wrench, X } from 'lucide-react'
 import './REOSApp.css'
 
 const properties = [
@@ -9,8 +9,25 @@ const properties = [
 ]
 
 const nav = [
-  {label:'Overview',icon:LayoutGrid}, {label:'Deal explorer',icon:Search}, {label:'Properties',icon:Building2},
-  {label:'Pipeline',icon:BarChart3}, {label:'Capital',icon:Landmark}, {label:'Reports',icon:TrendingUp},
+  {label:'Overview',icon:LayoutGrid},
+  {label:'Deal explorer',icon:Search},
+  {label:'Underwriting',icon:BarChart3},
+  {label:'Creative finance',icon:Landmark},
+  {label:'Outreach',icon:Users},
+  {label:'Offers & contracts',icon:FileCheck2},
+  {label:'Capital',icon:Landmark},
+  {label:'Due diligence',icon:ShieldCheck},
+  {label:'Vendors & RFQs',icon:Wrench},
+  {label:'Closing',icon:FileCheck2},
+  {label:'Construction',icon:Building2},
+  {label:'Property management',icon:Building2},
+  {label:'Reports',icon:TrendingUp},
+]
+
+const platformNav = [
+  {label:'AI agents',icon:Bot},
+  {label:'Integrations',icon:Network},
+  {label:'Documents',icon:Upload},
 ]
 
 export default function REOSApp(){
@@ -33,6 +50,8 @@ export default function REOSApp(){
         <nav className="reos-nav">
           <p className="nav-label">WORKSPACE</p>
           {nav.map(({label,icon:Icon})=><button key={label} className={active===label?'nav-link active':'nav-link'} onClick={()=>{setActive(label);setMenu(false)}}><Icon size={18}/><span>{label}</span>{label==='Pipeline'&&<b>12</b>}</button>)}
+          <p className="nav-label platform-label">PLATFORM</p>
+          {platformNav.map(({label,icon:Icon})=><button key={label} className={active===label?'nav-link active':'nav-link'} onClick={()=>{setActive(label);setMenu(false)}}><Icon size={18}/><span>{label}</span></button>)}
         </nav>
       </div>
       <div className="sidebar-bottom">
@@ -106,6 +125,53 @@ function Overview({visible,saved,setSaved,setModal,setActive}:{visible:any[];sav
 
 function Kpi({label,value,change,positive,negative,icon:Icon}:{label:string;value:string;change:string;positive?:boolean;negative?:boolean;icon:any}){return <article className="kpi-card"><div className="kpi-icon"><Icon size={18}/></div><div><p>{label}</p><strong>{value}</strong><span className={positive?'kpi-up':negative?'kpi-down':'kpi-neutral'}>{positive?<ArrowUpRight size={12}/>:negative?<ArrowDownRight size={12}/>:<Clock3 size={12}/>} {change}{positive?' this month':''}</span></div></article>}
 
-function WorkspaceView({active,search,setSearch}:{active:string;search:string;setSearch:(v:string)=>void}){return <section className="workspace-view"><div className="workspace-banner"><div><p>REOS {active.toUpperCase()}</p><h2>{active==='Deal explorer'?'Discover stronger opportunities':`Manage ${active.toLowerCase()} from one place`}</h2><span>Real-time operational context across your portfolio.</span></div><button className="banner-button"><CirclePlus size={16}/> New record</button></div>{active==='Deal explorer'&&<div className="workspace-search"><Search size={18}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by address, city, or property name"/><button><Command size={14}/>K</button></div>}<div className="workspace-grid">{['Sourcing','Underwriting','Outreach','Diligence','Closing','Operations'].map((stage,i)=><article key={stage}><div className="workspace-card-top"><span>{i+1}</span><MoreHorizontal size={17}/></div><p>{stage}</p><strong>{[8,5,4,3,2,6][i]}</strong><small>active items</small></article>)}</div></section>}
+function WorkspaceView({active,search,setSearch}:{active:string;search:string;setSearch:(v:string)=>void}){
+  const descriptions:Record<string,string>= {
+    'Deal explorer':'Search MLS, public records, auctions, probate, tax deeds, and distressed opportunities.',
+    'Underwriting':'Run deterministic financial models across residential, commercial, land, and multifamily assets.',
+    'Creative finance':'Model subject-to, seller carryback, wrap, novation, and lease-option structures.',
+    'Outreach':'Manage voice, SMS, email, direct mail, consent, DNC, and seller follow-up workflows.',
+    'Offers & contracts':'Review offers, execute HITL approval, generate state-specific contracts, and track e-sign.',
+    'Capital':'Match institutional and private capital and generate lender underwriting binders.',
+    'Due diligence':'Coordinate inspections, appraisals, surveys, environmental reviews, and contingency deadlines.',
+    'Vendors & RFQs':'Manage vendors, broadcast RFQs, normalize bids, award scope, and create draw schedules.',
+    'Closing':'Coordinate title, settlement audits, insurance, RON, wire verification, and closing.',
+    'Construction':'Track rehabilitation milestones, geotagged photos, escrow draws, and approved spend.',
+    'Property management':'Manage leases, screening, ACH rent, maintenance, utilities, and Schedule E accounting.',
+    'Reports':'Review portfolio valuation, NOI, DSCR, pipeline bottlenecks, margins, and tax exports.',
+    'AI agents':'Configure autonomous agents, provider models, approval boundaries, and execution policies.',
+    'Integrations':'Connect MLS, parcel, voice, messaging, e-sign, banking, screening, storage, and automation vendors.',
+    'Documents':'Review OCR, title, leases, T12s, contracts, settlement statements, and source citations.',
+  }
+  const stageCards:Record<string,string[]>={
+    'Deal explorer':['New opportunities','Saved searches','Auction watch','Skip-traced owners'],
+    'Underwriting':['Active scenarios','Draft analyses','Strategy ranking','Vision rehab'],
+    'Creative finance':['Subject-To','Seller carryback','Novation','Lease option'],
+    'Outreach':['Contact queues','Voice campaigns','SMS threads','Mail sequences'],
+    'Offers & contracts':['Pending approval','Draft envelopes','Signed contracts','Contingencies'],
+    'Capital':['Lender matches','Term sheets','Binders','Submissions'],
+    'Due diligence':['Inspection','Appraisal','Survey','Environmental'],
+    'Vendors & RFQs':['Approved vendors','Open RFQs','Bid comparisons','Awarded scope'],
+    'Closing':['Title audit','Settlement audit','RON','Wire verification'],
+    'Construction':['Milestones','Draw requests','Field photos','Budget variance'],
+    'Property management':['Active leases','Delinquencies','Maintenance','Ledger entries'],
+    'Reports':['Portfolio NOI','Deal pipeline','Vendor savings','Tax export'],
+    'AI agents':['Sourcing agent','Underwriting agent','Outreach agent','Closing agent'],
+    'Integrations':['Data providers','Communications','Financial','Document & e-sign'],
+    'Documents':['Title commitments','T12 & rent rolls','Contracts','Settlement statements'],
+  }
+  const cards=stageCards[active]||['Sourcing','Underwriting','Outreach','Diligence','Closing','Operations']
+
+  return <section className="workspace-view">
+    <div className="workspace-banner"><div><p>REOS {active.toUpperCase()}</p><h2>{descriptions[active] ? active : `Manage ${active.toLowerCase()}`}</h2><span>{descriptions[active]||'Real-time operational context across your portfolio.'}</span></div><button className="banner-button"><CirclePlus size={16}/> New record</button></div>
+    {['Deal explorer','Underwriting','Documents','Integrations','AI agents'].includes(active)&&<div className="workspace-search"><Search size={18}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={`Search ${active.toLowerCase()}...`}/><button><Command size={14}/>K</button></div>}
+    <div className="workspace-grid">{cards.map((stage,i)=><article key={stage}><div className="workspace-card-top"><span>{i+1}</span><MoreHorizontal size={17}/></div><p>{stage}</p><strong>{[8,5,4,3,2,6][i%6]}</strong><small>active records</small><button className="card-open">Open module <ArrowUpRight size={13}/></button></article>)}</div>
+    {active==='AI agents'&&<div className="agent-config-panel"><div><Bot size={21}/><span><strong>Agent execution policy</strong><small>Human approval required for financial commitments</small></span></div><button className="secondary-action"><ShieldCheck size={15}/> Configure policies</button></div>}
+    {active==='Integrations'&&<div className="integration-panel">{['RealEstateAPI','Bridge RESO','Twilio','Vapi','DocuSign','Plaid','Stripe','Anthropic'].map((name,i)=><article key={name}><div className="integration-logo">{name.slice(0,1)}</div><div><strong>{name}</strong><span>{i<4?'Sandbox configured':'Not connected'}</span></div><button>{i<4?'Configure':'Connect'}</button></article>)}</div>}
+    {active==='Outreach'&&<div className="workflow-panel"><div className="workflow-head"><div><p>OUTBOUND AUTOMATION</p><h3>Seller outreach queue</h3></div><button className="primary-action"><CirclePlus size={15}/> Start campaign</button></div><div className="workflow-table"><div className="workflow-row header"><span>Seller / property</span><span>Channel</span><span>Consent</span><span>Next action</span><span>Status</span></div>{[['Oakwood Multifamily','SMS + Email','Verified','Follow-up today','Active'],['North Kenmore House','Voice','DNC clear','Call at 10:30 AM','Queued'],['Michigan Avenue Loft','Direct mail','Verified','Letter scheduled','Paused']].map(row=><div className="workflow-row" key={row[0]}>{row.map((cell,i)=><span key={cell} className={i===4?'workflow-status':''}>{cell}</span>)}</div>)}</div></div>}
+    {active==='Offers & contracts'&&<div className="workflow-panel"><div className="workflow-head"><div><p>HUMAN APPROVAL REQUIRED</p><h3>Offer & contract approvals</h3></div><button className="primary-action"><FileCheck2 size={15}/> Generate offer</button></div><div className="workflow-table"><div className="workflow-row header"><span>Deal</span><span>Contract</span><span>Amount</span><span>Review</span><span>Status</span></div>{[['Oakwood Multifamily','PSA',' $785,000','Legal + owner','Pending approval'],['North Kenmore House','LOI',' $420,000','Investor','Approved'],['Michigan Avenue Loft','Novation',' $365,000','Counsel','Draft']].map(row=><div className="workflow-row" key={row[0]}>{row.map((cell,i)=><span key={cell} className={i===4?'workflow-status':''}>{cell}</span>)}</div>)}</div></div>}
+    {active==='Capital'&&<div className="workflow-panel"><div className="workflow-head"><div><p>LENDER MARKETPLACE</p><h3>Recommended capital programs</h3></div><button className="primary-action"><Landmark size={15}/> Generate binder</button></div><div className="lender-grid">{[['Local DSCR Prime','DSCR','70% LTV','1.25x DSCR'],['Agency Multifamily','Agency','75% LTV','1.30x DSCR'],['Flexible Bridge','Bridge','75% LTV','12-month term']].map(row=><article key={row[0]}><div className="lender-logo"><Landmark size={18}/></div><strong>{row[0]}</strong><span>{row[1]}</span><div><b>{row[2]}</b><b>{row[3]}</b></div><button>View terms</button></article>)}</div></div>}
+  </section>
+}
 
 function PropertyForm({onClose}:{onClose:()=>void}){return <><p className="modal-kicker">NEW OPPORTUNITY</p><h2>Add a property</h2><p className="modal-description">Create a new deal and begin underwriting.</p><form onSubmit={e=>{e.preventDefault();onClose()}}><label>Property address<input required placeholder="1234 Main Street"/></label><div className="form-row"><label>City<input required placeholder="Chicago"/></label><label>State<select><option>IL</option><option>TX</option><option>FL</option><option>GA</option></select></label></div><div className="form-row"><label>Property type<select><option>Single family</option><option>Multifamily</option><option>Condo</option><option>Commercial</option></select></label><label>Purchase price<input required placeholder="$425,000"/></label></div><button className="submit-button" type="submit">Create opportunity</button></form></>}
